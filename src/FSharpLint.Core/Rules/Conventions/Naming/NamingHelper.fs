@@ -46,6 +46,9 @@ module QuickFixes =
     let toCamelCase (ident:Ident) = lazy(
         let camelCaseIdent = ident.idText |> mapFirstChar Char.ToLower
         Some { FromText = ident.idText; FromRange = ident.idRange; ToText = camelCaseIdent })
+        
+    let appendVariableName (ident:Ident) = lazy(
+        Some { FromText = ident.idText; FromRange = ident.idRange; ToText = ident.idText + "VariableName" })
 
 [<Literal>]
 let private NumberOfExpectedBackticks = 4
@@ -73,6 +76,10 @@ let isCamelCase (identifier:string) =
     let withoutUnderscorePrefix = identifier.TrimStart '_'
     if withoutUnderscorePrefix.Length = 0 then true
     else Char.IsLower withoutUnderscorePrefix.[0]
+    
+let isSingleCharacter (identifier:string) =
+    if identifier.Length <= 1 then true
+    else false
 
 let private pascalCaseRule (identifier:string) =
     if not (isPascalCase identifier) then Some "RulesNamingConventionsPascalCaseError"
@@ -89,6 +96,10 @@ let private underscoreRule allowPrefix (identifier:string) =
         Some "RulesNamingConventionsUnderscoreError"
     else
         None
+        
+let private singleCharacterNameRule (identifier:string) =
+    if (isSingleCharacter identifier) then Some "RulesNamingConventionsSingleCharacterNameError"
+    else None
 
 let private prefixRule (prefix:string) (identifier:string) =
     if not (identifier.StartsWith prefix) then Some "RulesNamingConventionsPrefixError"
@@ -138,12 +149,17 @@ let private checkIdentifierPart (config:NamingConfig) (identifier:Ident) (idText
         |> Option.bind (fun suffix ->
             suffixRule suffix idText
             |> Option.map (formatError2 suffix >> tryAddFix (QuickFixes.addSuffix suffix)))
+            
+    let singleCharacterError =
+        singleCharacterNameRule idText
+        |> Option.map (formatError >> tryAddFix QuickFixes.appendVariableName)
 
     [|
         casingError
         underscoresError
         prefixError
         suffixError
+        singleCharacterError
     |] |> Array.choose id
 
 let private checkIdentifier (namingConfig:NamingConfig) (identifier:Ident) (idText:string) =

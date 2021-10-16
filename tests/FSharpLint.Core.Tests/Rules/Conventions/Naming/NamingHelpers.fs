@@ -17,3 +17,9 @@ type TestConventionsNamingHelpers() =
         Assert.IsTrue(isCamelCase "dogInBin")
 
         Assert.IsFalse(isCamelCase "DogInBin")
+
+    [<Test>]
+    member __.IsNotSingleCharacter() = 
+        Assert.IsTrue(isSingleCharacter "d")
+
+        Assert.IsFalse(isSingleCharacter "dogInBin")
